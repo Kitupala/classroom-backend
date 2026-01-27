@@ -8,10 +8,21 @@ const router = express.Router();
 // Get all subjects with optional search, filtering and pagination
 router.get('/', async (req, res) => {
   try {
-      const {search, department, page = 1, limit = 10} = req.query;
+      const {search, department, page: rawPage, limit: rawLimit} = req.query;
 
-      const currentPage = Math.max(1, +page);
-      const limitPerPage = Math.max(1, +limit);
+      const MAX_LIMIT = 100;
+      const DEFAULT_PAGE = 1;
+      const DEFAULT_LIMIT = 10;
+
+      const parseQueryParam = (param: any, defaultValue: number): number => {
+          if (param === undefined) return defaultValue;
+          const value = Array.isArray(param) ? param[0] : param;
+          const parsed = typeof value === 'string' ? parseInt(value, 10) : Number(value);
+          return Number.isFinite(parsed) ? parsed : defaultValue;
+      };
+
+      const currentPage = Math.max(1, parseQueryParam(rawPage, DEFAULT_PAGE));
+      const limitPerPage = Math.max(1, Math.min(MAX_LIMIT, parseQueryParam(rawLimit, DEFAULT_LIMIT)));
       const offset = (currentPage - 1) * limitPerPage;
 
       const filterConditions = [];
@@ -42,7 +53,7 @@ router.get('/', async (req, res) => {
           .leftJoin(departments, eq(subjects.departmentId, departments.id))
           .where(whereClause);
 
-      const totalCount = countResult[0]?.count ?? 0;
+      const totalCount = Number(countResult[0]?.count ?? 0);
 
       const subjectsList = await db
           .select({
