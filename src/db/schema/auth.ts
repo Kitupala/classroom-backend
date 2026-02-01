@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, pgEnum, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum, index, unique } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 const timestamps = {
@@ -43,11 +43,12 @@ export const account = pgTable("account", {
     accessTokenExpiresAt: timestamp("access_token_expires_at"),
     refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
     scope: text("scope"),
-    password: text("password"),
+    passwordHash: text("password_hash"),
     createdAt: timestamp("created_at").notNull(),
     updatedAt: timestamp("updated_at").notNull(),
 }, (table) => [
      index("account_user_id_idx").on(table.userId),
+     unique('account_provider_id_account_id_unique').on(table.providerId, table.accountId)
 ]);
 
 export const verification = pgTable("verification", {

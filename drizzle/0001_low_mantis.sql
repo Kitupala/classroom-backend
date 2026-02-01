@@ -35,9 +35,10 @@ CREATE TABLE "account" (
 	"access_token_expires_at" timestamp,
 	"refresh_token_expires_at" timestamp,
 	"scope" text,
-	"password" text,
+	"password_hash" text,
 	"created_at" timestamp NOT NULL,
-	"updated_at" timestamp NOT NULL
+	"updated_at" timestamp NOT NULL,
+	CONSTRAINT "account_provider_id_account_id_unique" UNIQUE("provider_id","account_id")
 );
 --> statement-breakpoint
 CREATE TABLE "session" (
