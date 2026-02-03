@@ -1,15 +1,16 @@
 import express from 'express';
 import {and, desc, eq, getTableColumns, ilike, or, sql} from "drizzle-orm";
-import {departments, subjects} from "../db/schema";
+import {user} from "../db/schema";
 import {db} from "../db";
 import {DEFAULT_LIMIT, DEFAULT_PAGE, MAX_LIMIT} from "../constants";
+import {UserRoles} from "../type";
 
 const router = express.Router();
 
-// Get all subjects with optional search, filtering and pagination
+// Get all users with optional search, filtering and pagination
 router.get('/', async (req, res) => {
   try {
-      const {search, department, page: rawPage, limit: rawLimit} = req.query;
+      const {search, role, page: rawPage, limit: rawLimit} = req.query;
 
       const parseQueryParam = (param: any, defaultValue: number): number => {
           if (param === undefined) return defaultValue;
@@ -24,20 +25,25 @@ router.get('/', async (req, res) => {
 
       const filterConditions = [];
 
-      // If search query exists, filter by subject name OR subject code
+      // If search query exists, filter by user name OR email
       if (search) {
           filterConditions.push(
               or(
-                  ilike(subjects.name, `%${search}%`),
-                  ilike(subjects.code, `%${search}%`)
+                  ilike(user.name, `%${search}%`),
+                  ilike(user.email, `%${search}%`)
               )
           );
       }
 
-      // If department filter exists, match department name
-      if (department) {
+      // If role filter exists, exact match
+      const validRoles: UserRoles[] = ["admin", "teacher", "student"];
+
+      if (role) {
+          if (!validRoles.includes(role as UserRoles)) {
+              return res.status(400).json({error: "Invalid role filter"});
+          }
           filterConditions.push(
-              ilike(departments.name, `%${department}%`)
+              eq(user.role, role as UserRoles)
           );
       }
 
@@ -46,26 +52,28 @@ router.get('/', async (req, res) => {
 
       const countResult = await db
           .select({count: sql<number>`count(*)`})
-          .from(subjects)
-          .leftJoin(departments, eq(subjects.departmentId, departments.id))
+          .from(user)
           .where(whereClause);
 
       const totalCount = Number(countResult[0]?.count ?? 0);
 
-      const subjectsList = await db
+      const usersList = await db
           .select({
-              ...getTableColumns(subjects),
-              department: {...getTableColumns(departments)}
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              image: user.image,
+              role: user.role,
+              createdAt: user.createdAt
           })
-          .from(subjects)
-          .leftJoin(departments, eq(subjects.departmentId, departments.id))
+          .from(user)
           .where(whereClause)
-          .orderBy(desc(subjects.createdAt))
+          .orderBy(desc(user.createdAt))
           .limit(limitPerPage)
           .offset(offset);
 
       res.status(200).json({
-          data: subjectsList,
+          data: usersList,
           pagination: {
               page: currentPage,
               limit: limitPerPage,
@@ -74,8 +82,8 @@ router.get('/', async (req, res) => {
           }
       });
   } catch (error) {
-      console.error(`GET /subjects failed: ${error}`);
-      res.status(500).json({error:"Failed to get subjects"});
+      console.error(`GET /users failed: ${error}`);
+      res.status(500).json({error:"Failed to get users"});
   }
 })
 

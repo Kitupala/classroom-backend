@@ -1,7 +1,10 @@
 import express from 'express';
 import subjectsRouter from "./routes/subjects";
+import usersRouter from "./routes/users";
+import classesRouter from "./routes/classes";
 import cors from 'cors';
 import securityMiddleware from "./middleware/security";
+import authMiddleware from "./middleware/auth";
 import {auth} from "./lib/auth";
 import {toNodeHandler} from "better-auth/node";
 
@@ -24,9 +27,13 @@ app.all('/api/auth/*splat', toNodeHandler(auth));
 
 app.use(express.json());
 
-app.use(securityMiddleware)
+app.use(authMiddleware);
+
+app.use(securityMiddleware);
 
 app.use('/api/subjects', subjectsRouter)
+app.use('/api/users', usersRouter)
+app.use('/api/classes', classesRouter)
 
 app.get('/', (req, res) => {
   res.json({ message: 'Hello from Classroom Backend!' });
