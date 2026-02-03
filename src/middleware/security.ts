@@ -1,6 +1,7 @@
 import type {Request, Response, NextFunction} from "express";
 import aj from "../config/arcjet";
 import {ArcjetNodeRequest, slidingWindow} from "@arcjet/node";
+import {RateLimitRole} from "../type";
 
 const securityMiddleware = async (
     req: Request,
@@ -17,17 +18,17 @@ const securityMiddleware = async (
 
         switch (role) {
             case 'admin':
-                limit = 20;
-                message = "Admins are limited to 20 requests per minute. Slow down!";
+                limit = 100;
+                message = "Admins are limited to 100 requests per minute. Slow down!";
                 break;
             case 'teacher':
             case 'student':
-                limit = 10;
-                message = "User requests are limited to 10 per minute. Please wait.";
+                limit = 50;
+                message = "User requests are limited to 50 per minute. Please wait.";
                 break;
             default:
-                limit = 5;
-                message = "Guests are limited to 5 requests per minute. Please sign up for higher limits.";
+                limit = 30;
+                message = "Guests are limited to 30 requests per minute. Please sign up for higher limits.";
         }
 
         const client = aj.withRule(slidingWindow({
