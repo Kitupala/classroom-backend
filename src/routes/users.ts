@@ -3,6 +3,7 @@ import {and, desc, eq, getTableColumns, ilike, or, sql} from "drizzle-orm";
 import {user} from "../db/schema";
 import {db} from "../db";
 import {DEFAULT_LIMIT, DEFAULT_PAGE, MAX_LIMIT} from "../constants";
+import {UserRoles} from "../type";
 
 const router = express.Router();
 
@@ -35,9 +36,14 @@ router.get('/', async (req, res) => {
       }
 
       // If role filter exists, exact match
+      const validRoles: UserRoles[] = ["admin", "teacher", "student"];
+
       if (role) {
+          if (!validRoles.includes(role as UserRoles)) {
+              return res.status(400).json({error: "Invalid role filter"});
+          }
           filterConditions.push(
-              eq(user.role, role as any)
+              eq(user.role, role as UserRoles)
           );
       }
 
@@ -53,7 +59,12 @@ router.get('/', async (req, res) => {
 
       const usersList = await db
           .select({
-              ...getTableColumns(user)
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              image: user.image,
+              role: user.role,
+              createdAt: user.createdAt
           })
           .from(user)
           .where(whereClause)

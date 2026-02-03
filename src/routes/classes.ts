@@ -1,4 +1,5 @@
 import express from "express";
+import { randomBytes } from "crypto";
 import {and, desc, eq, getTableColumns, ilike, or, sql} from "drizzle-orm";
 
 import {db} from "../db";
@@ -57,7 +58,11 @@ router.get("/", async (req, res) => {
             .select({
                 ...getTableColumns(classes),
                 subject: { ...getTableColumns(subjects) },
-                teacher: { ...getTableColumns(user) }
+                teacher: {
+                    id: user.id,
+                    name: user.name,
+                    image: user.image,
+                }
             })
             .from(classes)
             .leftJoin(subjects, eq(classes.subjectId, subjects.id))
@@ -99,7 +104,9 @@ router.get('/:id', async (req, res) => {
                 ...getTableColumns(departments),
             },
             teacher: {
-                ...getTableColumns(user),
+                id: user.id,
+                name: user.name,
+                image: user.image,
             }
         })
         .from(classes)
@@ -114,10 +121,27 @@ router.get('/:id', async (req, res) => {
 })
 
 router.post('/', async (req, res) => {
+    // Verify user is authenticated and has appropriate role
+    if (!req.user || (req.user.role !== 'teacher' && req.user.role !== 'admin')) {
+        return res.status(403).json({ error: 'Unauthorized' });
+    }
+
     try {
+        // Validate and whitelist request body
+        const { subjectId, teacherId, name, description, capacity, status } = req.body;
+
         const [createdClass] = await db
             .insert(classes)
-            .values({...req.body, inviteCode: Math.random().toString(36).substring(2, 9), schedules: []})
+            .values({
+                subjectId,
+                teacherId,
+                name,
+                description,
+                capacity,
+                status,
+                inviteCode: randomBytes(5).toString("base64url"),
+                schedules: [],
+            })
             .returning({ id: classes.id });
 
         if(!createdClass) throw Error;
