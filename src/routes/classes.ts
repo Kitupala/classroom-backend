@@ -62,6 +62,7 @@ router.get("/", async (req, res) => {
                     id: user.id,
                     name: user.name,
                     image: user.image,
+                    email: user.email,
                 }
             })
             .from(classes)
@@ -107,6 +108,7 @@ router.get('/:id', async (req, res) => {
                 id: user.id,
                 name: user.name,
                 image: user.image,
+                email: user.email,
             }
         })
         .from(classes)
